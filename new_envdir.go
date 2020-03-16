@@ -2,7 +2,6 @@ package goroutine
 
 import (
 	"bufio"
-	"errors"
 	"io/ioutil"
 	"log"
 	"os"
@@ -11,21 +10,6 @@ import (
 	"strings"
 	"syscall"
 )
-
-func main() {
-	args := os.Args
-	dir := args[0]
-	cmd := args[1:]
-
-	env, err := ReadDir(dir)
-	if err != nil {
-		log.Fatalf("Env directory error: %v", err)
-		os.Exit(1)
-	}
-	statusCode := RunCmd(cmd, env)
-
-	os.Exit(statusCode)
-}
 
 //ReadDir ...
 func ReadDir(dir string) (map[string]string, error) {
@@ -42,21 +26,21 @@ func ReadDir(dir string) (map[string]string, error) {
 
 		file, err := os.Open(path.Join(dir, key))
 		if err != nil {
-			return env, err
+			continue
 		}
 		defer file.Close()
 
 		reader := bufio.NewReader(file)
 		line, isTooLong, err := reader.ReadLine()
-		value := string(line)
 		if err != nil {
-			return env, err
+			continue
 		}
 		if isTooLong {
-			return env, errors.New("Too many data in env file " + key)
+			continue
 		}
+		value := string(line)
 		if strings.IndexRune(value, '=') >= 0 {
-			return env, errors.New("Symbol \"=\" in env file " + key)
+			continue
 		}
 		final[key] = value
 	}
