@@ -23,12 +23,26 @@ func ReadDir(dir string) (map[string]string, error) {
 
 	for _, file := range files {
 		key := file.Name()
+		if strings.IndexRune(key, '=') >= 0 {
+			continue
+		}
 
 		file, err := os.Open(path.Join(dir, key))
 		if err != nil {
 			continue
 		}
 		defer file.Close()
+
+		fi, err := file.Stat()
+		if err != nil {
+			continue
+		}
+
+		if fi.Size() == 0 {
+			newKey := key + "="
+			final[newKey] = ""
+			continue
+		}
 
 		reader := bufio.NewReader(file)
 		line, isTooLong, err := reader.ReadLine()
@@ -39,10 +53,8 @@ func ReadDir(dir string) (map[string]string, error) {
 			continue
 		}
 		value := string(line)
-		if strings.IndexRune(value, '=') >= 0 {
-			continue
-		}
-		final[key] = value
+		trimValue := strings.TrimSpace(value)
+		final[key] = trimValue
 	}
 
 	return final, nil
@@ -52,11 +64,24 @@ func ReadDir(dir string) (map[string]string, error) {
 func RunCmd(cmd []string, env map[string]string) int {
 	cmdExe := exec.Command(cmd[0], cmd[1:]...)
 	cmdExe.Env = os.Environ()
-	for k, v := range env {
-		cmdExe.Env = append(
-			cmdExe.Env,
-			k+"="+v,
-		)
+	newEnv := []string{}
+	for _, value := range cmdExe.Env {
+		key := strings.Split(value, "=")[0]
+		if _, ok := env[key+"="]; !ok {
+			newEnv = append(
+				newEnv,
+				value,
+			)
+		}
+	}
+	cmdExe.Env = newEnv
+	for key, value := range env {
+		if strings.IndexRune(key, '=') == -1 {
+			cmdExe.Env = append(
+				cmdExe.Env,
+				key+"="+value,
+			)
+		}
 	}
 
 	cmdExe.Stdin = os.Stdin
