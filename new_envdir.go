@@ -61,27 +61,14 @@ func ReadDir(dir string) (map[string]string, error) {
 //RunCmd ...
 func RunCmd(cmd []string, env map[string]string) int {
 	cmdExe := exec.Command(cmd[0], cmd[1:]...)
-	cmdExe.Env = os.Environ()
-	newEnv := []string{}
-	for _, value := range cmdExe.Env {
-		key := strings.Split(value, "=")[0]
-		if _, ok := env[key]; !ok {
-			newEnv = append(
-				newEnv,
-				value,
-			)
-		}
-	}
-	cmdExe.Env = newEnv
 	for key, value := range env {
 		if value != "" {
-			cmdExe.Env = append(
-				cmdExe.Env,
-				key+"="+value,
-			)
+			os.Setenv(key, value)
+		} else {
+			os.Unsetenv(key)
 		}
 	}
-
+	cmdExe.Env = os.Environ()
 	cmdExe.Stdin = os.Stdin
 	cmdExe.Stdout = os.Stdout
 	cmdExe.Stderr = os.Stderr
