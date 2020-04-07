@@ -14,7 +14,6 @@ import (
 //ReadDir ...
 func ReadDir(dir string) (map[string]string, error) {
 	env := map[string]string{}
-	final := env
 
 	files, err := ioutil.ReadDir(dir)
 	if err != nil {
@@ -39,8 +38,7 @@ func ReadDir(dir string) (map[string]string, error) {
 		}
 
 		if fi.Size() == 0 {
-			newKey := key + "="
-			final[newKey] = ""
+			env[key] = ""
 			continue
 		}
 
@@ -54,10 +52,10 @@ func ReadDir(dir string) (map[string]string, error) {
 		}
 		value := string(line)
 		trimValue := strings.TrimSpace(value)
-		final[key] = trimValue
+		env[key] = trimValue
 	}
 
-	return final, nil
+	return env, nil
 }
 
 //RunCmd ...
@@ -67,7 +65,7 @@ func RunCmd(cmd []string, env map[string]string) int {
 	newEnv := []string{}
 	for _, value := range cmdExe.Env {
 		key := strings.Split(value, "=")[0]
-		if _, ok := env[key+"="]; !ok {
+		if _, ok := env[key]; !ok {
 			newEnv = append(
 				newEnv,
 				value,
@@ -76,7 +74,7 @@ func RunCmd(cmd []string, env map[string]string) int {
 	}
 	cmdExe.Env = newEnv
 	for key, value := range env {
-		if strings.IndexRune(key, '=') == -1 {
+		if value != "" {
 			cmdExe.Env = append(
 				cmdExe.Env,
 				key+"="+value,
